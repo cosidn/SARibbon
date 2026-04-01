@@ -12,6 +12,11 @@ set(SARIBBON_VERSION "${SARIBBON_VERSION_MAJOR}.${SARIBBON_VERSION_MINOR}.${SARI
 message(STATUS "SARibbon v${SARIBBON_VERSION}")
 project(SARibbon VERSION ${SARIBBON_VERSION} LANGUAGES CXX)
 
+# 兼容旧的 BUILD_EXAMPLES 选项名，避免现有 CI 和外部脚本失效
+if(DEFINED BUILD_EXAMPLES AND NOT DEFINED SARIBBON_BUILD_EXAMPLES)
+    set(SARIBBON_BUILD_EXAMPLES ${BUILD_EXAMPLES} CACHE BOOL "build the examples" FORCE)
+endif()
+
 option(SARIBBON_BUILD_STATIC_LIBS "build the SARibbonBar in static lib mode" OFF)
 option(SARIBBON_BUILD_EXAMPLES "build the examples" ON)
 # frameless能提供windows的窗口特效，如边缘吸附，且对高分屏多屏幕的支持更好,默认开启
@@ -49,8 +54,8 @@ if(SARIBBON_USE_FRAMELESS_LIB)
             message(WARNING "QT_VERSION = Qt${QT_VERSION} QT version minor is ${QT_VERSION_MINOR},less 14,will set SARIBBON_USE_FRAMELESS_LIB OFF")
         endif()
     elseif(${QT_VERSION_MAJOR} EQUAL 6)
-        # qt版本为6，判断是否小版本大于6.1
-        if(${QT_VERSION_MINOR} LESS_EQUAL 1)
+        # qt版本为6，仅6.0无法使用frameless
+        if(${QT_VERSION_MINOR} LESS 1)
             #6.0及bug多多无法使用frameless
             set(_SARIBBON_USE_FRAMELESS_LIB OFF)
             message(WARNING "QT_VERSION = Qt${QT_VERSION} QT version minor is ${QT_VERSION_MINOR},less 1,will set SARIBBON_USE_FRAMELESS_LIB OFF")

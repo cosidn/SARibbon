@@ -58,7 +58,7 @@ public:
 class _SARibbonHiddenCategoryData
 {
 public:
-    SARibbonCategory* category { nullptr };
+    QPointer< SARibbonCategory > category;
     int originalIndex { -1 };  ///< 隐藏前的tab索引，用于恢复显示时的位置参考
 };
 
@@ -910,6 +910,16 @@ SARibbonCategory* SARibbonBar::categoryByIndex(int index) const
  */
 void SARibbonBar::hideCategory(SARibbonCategory* category)
 {
+    if (nullptr == category) {
+        return;
+    }
+    for (auto i = d_ptr->mHidedCategory.begin(); i != d_ptr->mHidedCategory.end();) {
+        if (i->category.isNull() || i->category == category) {
+            i = d_ptr->mHidedCategory.erase(i);
+        } else {
+            ++i;
+        }
+    }
     int tabIndex = d_ptr->tabIndexForCategory(category);
     if (tabIndex >= 0) {
         _SARibbonHiddenCategoryData hiddenData;
@@ -935,7 +945,11 @@ void SARibbonBar::hideCategory(SARibbonCategory* category)
  */
 void SARibbonBar::showCategory(SARibbonCategory* category)
 {
-    for (auto i = d_ptr->mHidedCategory.begin(); i != d_ptr->mHidedCategory.end(); ++i) {
+    for (auto i = d_ptr->mHidedCategory.begin(); i != d_ptr->mHidedCategory.end();) {
+        if (i->category.isNull()) {
+            i = d_ptr->mHidedCategory.erase(i);
+            continue;
+        }
         if (i->category == category) {
             // 根据stacked widget的逻辑顺序计算正确的插入位置
             int insertPos = d_ptr->calcCategoryInsertTabIndex(i->category);
@@ -947,6 +961,7 @@ void SARibbonBar::showCategory(SARibbonCategory* category)
             raiseCategory(category);
             return;
         }
+        ++i;
     }
     raiseCategory(category);
 }
@@ -1073,6 +1088,13 @@ void SARibbonBar::removeCategory(SARibbonCategory* category)
 
     for (SARibbonContextCategory* c : sa_as_const(d_ptr->mContextCategoryList)) {
         c->takeCategory(category);
+    }
+    for (auto i = d_ptr->mHidedCategory.begin(); i != d_ptr->mHidedCategory.end();) {
+        if (i->category.isNull() || i->category == category) {
+            i = d_ptr->mHidedCategory.erase(i);
+        } else {
+            ++i;
+        }
     }
     // 这时要刷新所有tabdata的index信息
     if (isupdate) {
